@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
         relation: { type: String, required: true }
     }],
     isVerified: { type: Boolean, default: false },
+    isBloodDonor: { type: Boolean, default: false },
 });
 
 const User = mongoose.model('User', userSchema);
