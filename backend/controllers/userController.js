@@ -27,8 +27,7 @@ const userController = {
         try {
             const userExists = await User.findOne({ email });
             if (userExists) {
-                res.status(409).json({ message: 'User with this email already exists' });
-                return;
+                return res.status(409).json({ message: 'User with this email already exists' });
             }
 
             const salt = await bcrypt.genSalt(10);
@@ -44,15 +43,21 @@ const userController = {
                 address,
                 bloodType,
                 photo,
+                isVerified: req.user && req.user.role === 'Admin', // Auto-verify if logged-in user is admin
             });
 
             if (user) {
+                if (req.user && req.user.role === 'Admin') {
+                    // Automatically add as parish member if logged-in user is admin
+                    await ParishMember.create({ userId: user._id });
+                }
+
                 res.status(201).json({
                     _id: user._id,
                     fullName: user.fullName,
                     email: user.email,
                     role: user.role,
-                    token: generateToken(user), 
+                    token: generateToken(user),
                 });
             } else {
                 res.status(500).json({ message: 'Failed to create user' });
