@@ -11,11 +11,10 @@ const quizController = {
         if (!question || !options || !correctAnswer) {
             return res.status(400).json({ message: 'Question, options, and correctAnswer are required' });
         }
-
+        if (!options.includes(correctAnswer)) {
+            return res.status(400).json({ message: 'Correct answer must be one of the provided options' });
+        }
         try {
-            if (req.user.role !== 'admin') {
-                return res.status(403).json({ message: 'Not authorized to create questions.' });
-            }
 
             const quiz = await Quiz.create({ question, options, correctAnswer });
             res.status(201).json(quiz);
@@ -53,10 +52,6 @@ const quizController = {
                 return res.status(404).json({ message: 'Quiz not found' });
             }
 
-            if (req.user.role !== 'admin') {
-                return res.status(403).json({ message: 'Not authorized to update this question.' });
-            }
-
             quiz.question = question || quiz.question;
             quiz.options = options || quiz.options;
             quiz.correctAnswer = correctAnswer || quiz.correctAnswer;
@@ -87,10 +82,6 @@ const quizController = {
                 return res.status(404).json({ message: 'Quiz not found' });
             }
 
-            if (req.user.role !== 'admin') {
-                return res.status(403).json({ message: 'Not authorized to delete this question.' });
-            }
-
             await QuizSubmission.updateMany({ "selectedAnswers.quizId": req.params.id }, { $pull: { selectedAnswers: { quizId: req.params.id } } });
 
             res.json({ message: 'Quiz and associated submissions deleted successfully' });
@@ -105,6 +96,8 @@ const quizController = {
 
     getLatestQuizQuestion: asyncHandler(async (req, res) => {
         try {
+            console.log(req.user);
+            
             if (!req.user.isVerified) {
                 return res.status(403).json({ message: "User must be verified to access quiz questions" });
             }
@@ -188,6 +181,56 @@ const quizController = {
             res.json(submission);
         } catch (error) {
             console.error('Get Quiz Submission Error:', error);
+            res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
+    }),
+    getAllSubmissions: asyncHandler(async (req, res) => {
+        try {
+            const submissions = await QuizSubmission.find().populate('userId', 'username email').populate('selectedAnswers.quizId');
+            res.json(submissions);
+        } catch (error) {
+            console.error('Get All Submissions Error:', error);
+            res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
+    }),
+
+    getTopScorers: asyncHandler(async (req, res) => {
+        try {
+            if (!req.user.isVerified) {
+                return res.status(403).json({ message: 'User must be verified to view top scorers' });
+            }
+
+            const submissions = await QuizSubmission.find().populate('userId', 'username email').populate('selectedAnswers.quizId');
+
+            const scores = submissions.map(submission => {
+                let score = 0;
+                submission.selectedAnswers.forEach(answer => {
+                    if (answer.quizId.correctAnswer === answer.answer) {
+                        score++;
+                    }
+                });
+                return { userId: submission.userId, score };
+            });
+
+            scores.sort((a, b) => b.score - a.score);
+
+            res.json(scores);
+        } catch (error) {
+            console.error('Get Top Scorers Error:', error);
+            res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
+    }),
+
+    getUserSubmissions: asyncHandler(async (req, res) => {
+        try {
+            const userId = req.params.userId;
+            const submissions = await QuizSubmission.find({userId: userId}).populate('userId', 'username email').populate('selectedAnswers.quizId');
+            if(!submissions){
+              return res.status(404).json({message:"User submissions not found."})
+            }
+            res.json(submissions);
+        } catch (error) {
+            console.error('Get User Submissions Error:', error);
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),

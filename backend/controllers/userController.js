@@ -148,7 +148,8 @@ const userController = {
                 fullName,
                 email,
                 password: hashedPassword,
-                role: 'Admin', // Set the role to Admin
+                role: 'Admin',
+                isVerified:true, // Set the role to Admin
                 dateOfBirth,
                 contactNumber,
                 address,

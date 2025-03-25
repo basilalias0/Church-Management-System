@@ -2,8 +2,10 @@ const mongoose = require('mongoose');
 
 const quizSubmissionSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    quizId: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz', required: true },
-    selectedAnswers: { type: [String] },
+    selectedAnswers: [{ 
+        quizId: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz', required: true },
+        answer:{type: String, require:true}
+     }],
     score: { type: Number },
 });
 
