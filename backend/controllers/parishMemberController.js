@@ -5,29 +5,53 @@ const mongoose = require('mongoose');
 
 const parishMemberController = {
     createParishMember: asyncHandler(async (req, res) => {
-        const { userId } = req.body;
-
-        if (!userId) {
-            return res.status(400).json({ message: 'Please provide user ID' });
+        const { userId, username, email, password } = req.body; // Include username, email, password
+    
+        if (!userId && (!username || !email || !password)) {
+            return res.status(400).json({ message: 'Please provide user ID or username, email, and password' });
         }
-
+    
         try {
-            const userExists = await User.findById(userId);
-            if (!userExists) {
-                return res.status(404).json({ message: 'User not found' });
+            let user;
+    
+            if (userId) {
+                // Existing user
+                user = await User.findById(userId);
+                if (!user) {
+                    return res.status(404).json({ message: 'User not found' });
+                }
+    
+                // Check if logged-in user is admin or user to be added is verified
+                if (req.user.role !== 'Admin' && !user.isVerified) {
+                    return res.status(403).json({ message: 'Not authorized to create parish members' });
+                }
+            } else {
+                // New user (admin adding)
+                if (req.user.role !== 'Admin') {
+                    return res.status(403).json({ message: 'Not authorized to create new parish members' });
+                }
+    
+                // Check if user with same email exists
+                const userExists = await User.findOne({ email });
+                if (userExists) {
+                    return res.status(400).json({ message: 'User with this email already exists' });
+                }
+    
+                user = await User.create({
+                    username,
+                    email,
+                    password,
+                    isVerified: true, // Auto-verify admin-created users
+                });
             }
-
-            // Check if logged-in user is admin or user to be added is admin or verified
-            if (req.user.role !== 'Admin' && !userExists.isVerified) {
-                return res.status(403).json({ message: 'Not authorized to create parish members' });
-            }
-            const parishMemberExists = await ParishMember.findOne({ userId });
+    
+            const parishMemberExists = await ParishMember.findOne({ userId: user._id });
             if (parishMemberExists) {
                 return res.status(400).json({ message: 'User is already a parish member' });
             }
-
-            const parishMember = await ParishMember.create({ userId,role:"Churchgoer" });
-
+    
+            const parishMember = await ParishMember.create({ userId: user._id, role: "Churchgoer" });
+    
             res.status(201).json(parishMember);
         } catch (error) {
             console.error('Create Parish Member Error:', error);

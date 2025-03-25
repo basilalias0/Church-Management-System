@@ -12,9 +12,6 @@ const eventController = {
         }
 
         try {
-            if (req.user.role !== 'vicar') {
-                return res.status(403).json({ message: 'Not authorized to create events.' });
-            }
 
             const event = await Event.create({ title, description, date });
 
@@ -45,10 +42,6 @@ const eventController = {
             const event = await Event.findById(req.params.id);
             if (!event) {
                 return res.status(404).json({ message: 'Event not found' });
-            }
-
-            if (req.user.role !== 'vicar') {
-                return res.status(403).json({ message: 'Not authorized to update events.' });
             }
 
             const updatedEvent = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });

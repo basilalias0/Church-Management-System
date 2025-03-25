@@ -14,5 +14,6 @@ router.use("/id-card",virtualIdCardRouter)
 router.use("/event",eventRouter)
 router.use("/id-card",virtualIdCardRouter)
 router.use("/quiz",quizRouter)
+router.use("/event",eventRouter)
 
 module.exports = router;
