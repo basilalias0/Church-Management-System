@@ -7,7 +7,7 @@ const petitionController = {
     createPetition: asyncHandler(async (req, res) => {
         const { title, description } = req.body;
 
-        if (!title) {
+        if (!title|| !description) {
             return res.status(400).json({ message: 'Title is required' });
         }
 
@@ -33,15 +33,33 @@ const petitionController = {
     getPetitionById: asyncHandler(async (req, res) => {
         try {
             const petition = await Petition.findById(req.params.id).populate('userId', 'name email');
+    
             if (!petition) {
                 return res.status(404).json({ message: 'Petition not found' });
             }
-            res.json(petition);
+    
+            // Check if the logged-in user is the creator or an admin
+            if (req.user.id.toString() === petition.userId._id.toString()) {
+                res.json(petition);
+            } else {
+                return res.status(403).json({ message: 'You are not authorized to view this petition' });
+            }
         } catch (error) {
             console.error('Get Petition by ID Error:', error);
             if (error instanceof mongoose.Error.CastError) {
                 return res.status(400).json({ message: 'Invalid petition ID' });
             }
+            res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
+    }),
+    
+    getAllUserPetitions: asyncHandler(async (req, res) => {
+        try {
+            const petitions = await Petition.find({ userId: req.user.id }).populate('userId', 'name email');
+    
+            res.json(petitions);
+        } catch (error) {
+            console.error('Get All User Petitions Error:', error);
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),

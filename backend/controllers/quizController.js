@@ -93,34 +93,50 @@ const quizController = {
         }
     }),
 
-    getLatestQuizQuestion: asyncHandler(async (req, res) => {
+    getLatestQuizQuestions: asyncHandler(async (req, res) => {
         try {
-            if (!req.user.isVerified) {
-                return res.status(403).json({ message: "User must be verified to access quiz questions" });
-            }
-
-            const submission = await QuizSubmission.findOne({ userId: req.user.id }).sort({ date: -1 });
-
-            if (submission && submission.selectedAnswers.length > 0) {
-                const answeredQuizIds = submission.selectedAnswers.map(ans => ans.quizId);
-
-                const latestUnansweredQuiz = await Quiz.findOne({ _id: { $nin: answeredQuizIds } }).sort({ date: -1 });
-
-                if (latestUnansweredQuiz) {
-                    return res.json(latestUnansweredQuiz);
+            console.log(req.user);
+            
+            const userId = req.user.id;
+    
+            const submission = await QuizSubmission.findOne({ userId: userId }).sort({ date: -1 });
+    
+            if (submission) {
+                if (submission.selectedAnswers.length > 0) {
+                    // User has answered some questions
+                    const answeredQuizIds = submission.selectedAnswers.map(ans => ans.quizId);
+    
+                    const unansweredQuizzes = await Quiz.find({ _id: { $nin: answeredQuizIds } })
+                        .sort({ date: -1 })
+                        .limit(10);
+    
+                    if (unansweredQuizzes.length > 0) {
+                        return res.json(unansweredQuizzes);
+                    } else {
+                        return res.json({ message: "All questions have been answered." });
+                    }
                 } else {
-                    return res.json({ message: "All questions have been answered." });
+                    // User has a submission, but no answered questions
+                    const latestQuizzes = await Quiz.find().sort({ date: -1 }).limit(10);
+    
+                    if (latestQuizzes.length > 0) {
+                        return res.json(latestQuizzes);
+                    } else {
+                        return res.json({ message: "No questions found" });
+                    }
                 }
             } else {
-                const latestQuiz = await Quiz.findOne().sort({ date: -1 });
-                if (latestQuiz) {
-                    return res.json(latestQuiz);
+                // User has no submissions
+                const latestQuizzes = await Quiz.find().sort({ date: -1 }).limit(10);
+    
+                if (latestQuizzes.length > 0) {
+                    return res.json(latestQuizzes);
                 } else {
                     return res.json({ message: "No questions found" });
                 }
             }
         } catch (error) {
-            console.error("Get Latest Quiz Question Error:", error);
+            console.error("Get Latest Quiz Questions Error:", error);
             res.status(500).json({ message: "Internal server error", error: error.message });
         }
     }),
@@ -193,9 +209,6 @@ const quizController = {
 
     getTopScorers: asyncHandler(async (req, res) => {
         try {
-            if (!req.user.isVerified) {
-                return res.status(403).json({ message: 'User must be verified to view top scorers' });
-            }
 
             const submissions = await QuizSubmission.find().populate('userId', 'name email').populate('selectedAnswers.quizId'); // change username to name.
 
