@@ -1,15 +1,13 @@
 const express = require('express');
 const parishMemberRouter = express.Router();
 const parishMemberController = require('../controllers/parishMemberController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware'); // Assuming you have auth middleware
 
-parishMemberRouter.post('/', protect, parishMemberController.createParishMember);
-parishMemberRouter.get('/', protect, parishMemberController.getAllParishMembers);
-parishMemberRouter.get('/search', protect, parishMemberController.searchParishMembers);
-parishMemberRouter.get('/:id', protect, parishMemberController.getParishMemberById);
-parishMemberRouter.put('/:id', protect, authorize('Admin'), parishMemberController.updateParishMember);
-parishMemberRouter.delete('/:id', protect, authorize('Admin'), parishMemberController.deleteParishMember);
+// User routes (protected)
+parishMemberRouter.post('/add', protect, parishMemberController.addParishMember);
+parishMemberRouter.post('/remove', protect, parishMemberController.removeParishMember);
+parishMemberRouter.get('/', protect, parishMemberController.getParishMembers);
 
-
+parishMemberRouter.post('/toggle', protect, authorize("Admin"), parishMemberController.toggleParishMemberByAdmin);
 
 module.exports = parishMemberRouter;

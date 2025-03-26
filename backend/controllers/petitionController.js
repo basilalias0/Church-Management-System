@@ -1,12 +1,11 @@
-// petitionController.js
 const Petition = require('../models/petitionModel');
-const Notification = require('../models/notificationModel'); // Assuming you have a Notification model
+const Notification = require('../models/notificationModel');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 
 const petitionController = {
     createPetition: asyncHandler(async (req, res) => {
-        const { category, title, description } = req.body;
+        const { title, description } = req.body;
 
         if (!title) {
             return res.status(400).json({ message: 'Title is required' });
@@ -15,7 +14,7 @@ const petitionController = {
         try {
             const petition = await Petition.create({
                 userId: req.user.id,
-                category,
+                userName: req.user.name,
                 title,
                 description,
                 status: 'Pending',
@@ -24,19 +23,25 @@ const petitionController = {
             res.status(201).json(petition);
         } catch (error) {
             console.error('Create Petition Error:', error);
+            if (error instanceof mongoose.Error.ValidationError) {
+                return res.status(400).json({ message: 'Validation error', errors: error.errors });
+            }
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
 
     getPetitionById: asyncHandler(async (req, res) => {
         try {
-            const petition = await Petition.findById(req.params.id).populate('userId', 'username email');
+            const petition = await Petition.findById(req.params.id).populate('userId', 'name email');
             if (!petition) {
                 return res.status(404).json({ message: 'Petition not found' });
             }
             res.json(petition);
         } catch (error) {
             console.error('Get Petition by ID Error:', error);
+            if (error instanceof mongoose.Error.CastError) {
+                return res.status(400).json({ message: 'Invalid petition ID' });
+            }
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
@@ -52,10 +57,15 @@ const petitionController = {
                 return res.status(403).json({ message: 'Not authorized to update this petition' });
             }
 
-            const updatedPetition = await Petition.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('userId', 'username email');
+            const updatedPetition = await Petition.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate('userId', 'name email');
             res.json(updatedPetition);
         } catch (error) {
             console.error('Update Petition by User Error:', error);
+            if (error instanceof mongoose.Error.ValidationError) {
+                return res.status(400).json({ message: 'Validation error', errors: error.errors });
+            } else if (error instanceof mongoose.Error.CastError) {
+                return res.status(400).json({ message: 'Invalid petition ID' });
+            }
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
@@ -75,6 +85,9 @@ const petitionController = {
             res.json({ message: 'Petition deleted successfully' });
         } catch (error) {
             console.error('Delete Petition by User Error:', error);
+            if (error instanceof mongoose.Error.CastError) {
+                return res.status(400).json({ message: 'Invalid petition ID' });
+            }
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
@@ -87,30 +100,37 @@ const petitionController = {
                 return res.status(404).json({ message: 'Petition not found' });
             }
 
-            if (req.user.role !== 'vicar') {
+            if (req.user.role !== 'Vicar') {
                 return res.status(403).json({ message: 'Not authorized to update petition status' });
             }
 
-            const updatedPetition = await Petition.findByIdAndUpdate(req.params.id, { status }, { new: true }).populate('userId', 'username email');
+            const updatedPetition = await Petition.findByIdAndUpdate(req.params.id, { status }, { new: true }).populate('userId', 'name email');
 
+            let message = `Your petition "${petition.title}" status has been updated to ${status}.`;
             if (status === 'Resolved') {
-                await Notification.create({
-                    userId: petition.userId,
-                    message: `Your petition "${petition.title}" has been resolved.`,
-                    type: 'petition-resolved',
-                });
+                message = `Your petition "${petition.title}" has been resolved.`;
             }
+            await Notification.create({
+                userId: petition.userId,
+                message: message,
+                type: 'petition-status-update',
+            });
 
             res.json(updatedPetition);
         } catch (error) {
             console.error('Update Petition Status by Vicar Error:', error);
+            if (error instanceof mongoose.Error.ValidationError) {
+                return res.status(400).json({ message: 'Validation error', errors: error.errors });
+            } else if (error instanceof mongoose.Error.CastError) {
+                return res.status(400).json({ message: 'Invalid petition ID' });
+            }
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
 
     getAllPetitions: asyncHandler(async (req, res) => {
         try {
-            const petitions = await Petition.find().populate('userId', 'username email');
+            const petitions = await Petition.find().populate('userId', 'name email');
             res.json(petitions);
         } catch (error) {
             console.error('Get All Petitions Error:', error);

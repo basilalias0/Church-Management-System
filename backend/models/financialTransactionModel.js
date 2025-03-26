@@ -1,12 +1,11 @@
 const mongoose = require('mongoose');
 
 const financialTransactionSchema = new mongoose.Schema({
-    type: { type: String, enum: ['Income', 'Expense'], required: true },
+    type: { type: String, enum: ['income', 'expense'], required: true },
     category: { type: String },
     description: { type: String },
     amount: { type: Number, required: true },
-    date: { type: Date, default: Date.now },
-    accountId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    transactionDate: { type: Date, default: Date.now },
 });
 
 const FinancialTransaction = mongoose.model('FinancialTransaction', financialTransactionSchema);

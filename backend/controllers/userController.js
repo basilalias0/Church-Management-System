@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const FamilyMember = require('../models/familyMemberModel'); // Import FamilyMember model
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
@@ -7,9 +8,9 @@ const { default: mongoose } = require('mongoose');
 
 const userController = {
     registerUser: asyncHandler(async (req, res) => {
-        const { fullName, email, password, role, dateOfBirth, contactNumber, address, bloodType, photo } = req.body;
+        const { name, email, password, role, contactNumber, } = req.body; // Use 'name'
 
-        if (!fullName || !email || !password) {
+        if (!name || !email || !password) { // Use 'name'
             res.status(400).json({ message: 'Please provide all required fields' });
             return;
         }
@@ -34,30 +35,23 @@ const userController = {
             const hashedPassword = await bcrypt.hash(password, salt);
 
             const user = await User.create({
-                fullName,
+                name, // Use 'name'
                 email,
                 password: hashedPassword,
                 role,
-                dateOfBirth,
                 contactNumber,
-                address,
-                bloodType,
-                photo,
-                isVerified: req.user && req.user.role === 'Admin', // Auto-verify if logged-in user is admin
+                isParishMember: req.user && req.user.role === 'Admin', // Auto-verify if logged-in user is admin
             });
 
             if (user) {
-                if (req.user && req.user.role === 'Admin') {
-                    // Automatically add as parish member if logged-in user is admin
-                    await ParishMember.create({ userId: user._id });
-                }
+                const userForToken = await User.findById(user._id).select('-password');
 
                 res.status(201).json({
                     _id: user._id,
-                    fullName: user.fullName,
+                    name: user.name, // Use 'name'
                     email: user.email,
                     role: user.role,
-                    token: generateToken(user),
+                    token: generateToken(userForToken),
                 });
             } else {
                 res.status(500).json({ message: 'Failed to create user' });
@@ -77,15 +71,16 @@ const userController = {
         }
 
         try {
-            const user = await User.findOne({ email });
+            const user = await User.findOne({ email })
+            const userForToken = await User.findOne({ email }).select('-password')
 
             if (user && (await bcrypt.compare(password, user.password))) {
                 res.status(201).json({
                     _id: user._id,
-                    fullName: user.fullName,
+                    name: user.name, 
                     email: user.email,
                     role: user.role,
-                    token: generateToken(user),
+                    token: generateToken(userForToken),
                 });
             } else {
                 res.status(401).json({ message: 'Invalid email or password' });
@@ -109,6 +104,7 @@ const userController = {
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
+
     getAllUsers: asyncHandler(async (req, res) => {
         try {
             const { search } = req.query;
@@ -116,7 +112,7 @@ const userController = {
 
             if (search) {
                 query = {
-                    fullName: { $regex: search, $options: 'i' }, // Case-insensitive search
+                    name: { $regex: search, $options: 'i' }, // Use 'name'
                 };
             }
 
@@ -128,57 +124,11 @@ const userController = {
         }
     }),
 
-    addAdmin: asyncHandler(async (req, res) => {
-        const { fullName, email, password, dateOfBirth, contactNumber, address, bloodType, photo } = req.body;
-
-        if (!fullName || !email || !password) {
-            return res.status(400).json({ message: 'Please provide all required fields' });
-        }
-
-        try {
-            const userExists = await User.findOne({ email });
-            if (userExists) {
-                return res.status(409).json({ message: 'User with this email already exists' });
-            }
-
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(password, salt);
-
-            const user = await User.create({
-                fullName,
-                email,
-                password: hashedPassword,
-                role: 'Admin',
-                isVerified:true, // Set the role to Admin
-                dateOfBirth,
-                contactNumber,
-                address,
-                bloodType,
-                photo,
-            });
-
-            if (user) {
-                res.status(201).json({
-                    _id: user._id,
-                    fullName: user.fullName,
-                    email: user.email,
-                    role: user.role,
-                    message: 'Admin user created successfully',
-                });
-            } else {
-                res.status(500).json({ message: 'Failed to create admin user' });
-            }
-        } catch (error) {
-            console.error('Add Admin User Error:', error);
-            res.status(500).json({ message: 'Internal server error', error: error.message });
-        }
-    }),
-
     updateUser: asyncHandler(async (req, res) => {
         try {
             let updateData = req.body;
             if (req.file) {
-                updateData = { ...req.body, photo: req.file.path };
+                updateData = { ...req.body, profilePicture: req.file.path };
             }
 
             const user = await User.findByIdAndUpdate(req.params.id, updateData, {
@@ -211,12 +161,12 @@ const userController = {
         }
     }),
 
-    addFamilyMember: asyncHandler(async (req, res) => {
-        const { userId, relation } = req.body;
-        const { id: currentUserId } = req.params; // Get the user id from the request parameters.
+    addFamily: asyncHandler(async (req, res) => {
+        const { occupation, dateOfBirth, contactNumber, familyUnitCode, uniqueFamilyCode } = req.body;
+        const currentUserId = req.user.id; 
 
-        if (!userId || !relation) {
-            return res.status(400).json({ message: 'Please provide user ID and relation' });
+        if (!familyUnitCode || !uniqueFamilyCode) {
+            return res.status(400).json({ message: 'Please provide name, relation, familyUnitCode, and uniqueFamilyCode' });
         }
 
         try {
@@ -226,42 +176,48 @@ const userController = {
                 return res.status(404).json({ message: 'User not found' });
             }
 
-            // Check if userId is already in the familyMembers array
-            const existingMember = user.familyMembers.find(
-                (member) => member.userId.toString() === userId
-            );
-
-            if (existingMember) {
-                return res.status(400).json({ message: 'Family member already added' });
+            // Check if the current user already has a family unit code
+            if (user.familyUnitCode && user.uniqueFamilyCode) {
+                return res.status(400).json({ message: 'User already has a family unit code' });
             }
 
-            // Check if the family member exists.
-            const familyMemberExists = await User.findById(userId);
-
-            if (!familyMemberExists) {
-                return res.status(404).json({ message: 'Family member user ID not found' });
+            // Check if the provided familyUnitCode and uniqueFamilyCode already exist for another user
+            const existingFamily = await FamilyMember.findOne({ familyUnitCode, uniqueFamilyCode });
+            if (existingFamily) {
+                return res.status(400).json({ message: 'Family unit code already exists' });
             }
 
-            user.familyMembers.push({ userId, relation });
-            await user.save();
+            // Update the user's family unit code
+            await User.findByIdAndUpdate(currentUserId, { familyUnitCode, uniqueFamilyCode });
 
-            res.json({ message: 'Family member added successfully' });
+            // Create a new family member
+            const familyMember = await FamilyMember.create({
+                userId: currentUserId,
+                name:req.user.name,
+                relation:"self",
+                occupation,
+                dateOfBirth,
+                contactNumber:contactNumber || req.user.contactNumber,
+                familyUnitCode,
+                uniqueFamilyCode,
+            });
+
+            res.status(201).json({ message: 'Family member added successfully', familyMember });
         } catch (error) {
             console.error('Add Family Member Error:', error);
 
             if (error instanceof mongoose.Error.ValidationError) {
                 return res.status(400).json({ message: 'Validation error', errors: error.errors });
             } else if (error instanceof mongoose.Error.CastError) {
-                return res.status(400).json({ message: 'Invalid user or family member ID' });
+                return res.status(400).json({ message: 'Invalid user ID' });
             }
 
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
-
     verifyUser: asyncHandler(async (req, res) => {
         try {
-            const user = await User.findByIdAndUpdate(req.params.id, { isVerified: true }, { new: true });
+            const user = await User.findByIdAndUpdate(req.params.id, { isParishMember: true }, { new: true });
             if (user) {
                 res.json({ message: 'User verified successfully' });
             } else {
@@ -272,8 +228,6 @@ const userController = {
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
-
-    // ... other user-related functionalities
 };
 
 module.exports = userController;

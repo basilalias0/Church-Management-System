@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-    fullName: { type: String, required: true },
+    name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: {
@@ -14,13 +14,11 @@ const userSchema = new mongoose.Schema({
     contactNumber: { type: String },
     address: { type: String },
     bloodType: { type: String },
-    photo: { type: String },
-    familyMembers: [{
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-        relation: { type: String, required: true }
-    }],
-    isVerified: { type: Boolean, default: false },
     isBloodDonor: { type: Boolean, default: false },
+    volunteer: { type: Boolean, default: false },
+    familyUnitCode: { type: String },
+    uniqueFamilyCode: { type: Number },
+    isParishMember: { type: Boolean, default: false },
 });
 
 const User = mongoose.model('User', userSchema);

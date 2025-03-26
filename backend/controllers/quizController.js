@@ -15,7 +15,6 @@ const quizController = {
             return res.status(400).json({ message: 'Correct answer must be one of the provided options' });
         }
         try {
-
             const quiz = await Quiz.create({ question, options, correctAnswer });
             res.status(201).json(quiz);
         } catch (error) {
@@ -96,8 +95,6 @@ const quizController = {
 
     getLatestQuizQuestion: asyncHandler(async (req, res) => {
         try {
-            console.log(req.user);
-            
             if (!req.user.isVerified) {
                 return res.status(403).json({ message: "User must be verified to access quiz questions" });
             }
@@ -116,12 +113,11 @@ const quizController = {
                 }
             } else {
                 const latestQuiz = await Quiz.findOne().sort({ date: -1 });
-                if(latestQuiz){
+                if (latestQuiz) {
                     return res.json(latestQuiz);
                 } else {
-                  return res.json({message:"No questions found"});
+                    return res.json({ message: "No questions found" });
                 }
-
             }
         } catch (error) {
             console.error("Get Latest Quiz Question Error:", error);
@@ -184,9 +180,10 @@ const quizController = {
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
+
     getAllSubmissions: asyncHandler(async (req, res) => {
         try {
-            const submissions = await QuizSubmission.find().populate('userId', 'username email').populate('selectedAnswers.quizId');
+            const submissions = await QuizSubmission.find().populate('userId', 'name email').populate('selectedAnswers.quizId'); // change username to name.
             res.json(submissions);
         } catch (error) {
             console.error('Get All Submissions Error:', error);
@@ -200,7 +197,7 @@ const quizController = {
                 return res.status(403).json({ message: 'User must be verified to view top scorers' });
             }
 
-            const submissions = await QuizSubmission.find().populate('userId', 'username email').populate('selectedAnswers.quizId');
+            const submissions = await QuizSubmission.find().populate('userId', 'name email').populate('selectedAnswers.quizId'); // change username to name.
 
             const scores = submissions.map(submission => {
                 let score = 0;
@@ -224,9 +221,9 @@ const quizController = {
     getUserSubmissions: asyncHandler(async (req, res) => {
         try {
             const userId = req.params.userId;
-            const submissions = await QuizSubmission.find({userId: userId}).populate('userId', 'username email').populate('selectedAnswers.quizId');
-            if(!submissions){
-              return res.status(404).json({message:"User submissions not found."})
+            const submissions = await QuizSubmission.find({ userId: userId }).populate('userId', 'name email').populate('selectedAnswers.quizId'); // change username to name.
+            if (!submissions) {
+                return res.status(404).json({ message: "User submissions not found." });
             }
             res.json(submissions);
         } catch (error) {

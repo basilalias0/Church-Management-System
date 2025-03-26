@@ -1,21 +1,20 @@
-// quizRoutes.js
 const express = require('express');
-const quizRouter = express.Router();
-const quizController = require('../controllers/quizController'); // Adjust the path as needed
-const { protect, authorize } = require('../middleware/authMiddleware'); // Adjust the path as needed
+const router = express.Router();
+const quizController = require('../controllers/quizController');
+const { protect, authorize } = require('../middleware/authMiddleware'); // Assuming you have auth middleware
 
-quizRouter.post('/', protect, authorize("Admin"), quizController.createQuiz);
-quizRouter.get('/latest', protect, quizController.getLatestQuizQuestion);
-quizRouter.post('/submit', protect, quizController.submitAnswer);
-quizRouter.get('/submission', protect, quizController.getQuizSubmission);
+// Admin routes (protected)
+router.post('/', protect, authorize("Admin"), quizController.createQuiz);
+router.get('/:id', quizController.getQuizById); // No auth for public quiz viewing
+router.put('/:id', protect, authorize("Admin"), quizController.updateQuiz);
+router.delete('/:id', protect, authorize("Admin"), quizController.deleteQuiz);
+router.get('/submissions/all', protect, authorize("Admin"), quizController.getAllSubmissions); // Get all submissions (admin only)
+router.get('/submissions/user/:userId', protect, authorize("Admin"), quizController.getUserSubmissions); // Get user submissions by userId (admin only)
 
-quizRouter.get('/submissions/all', protect, authorize("Admin"), quizController.getAllSubmissions); 
-quizRouter.get('/top-scorers', protect, quizController.getTopScorers);
-quizRouter.get('/submissions/user/:userId', protect,authorize("Admin"), quizController.getUserSubmissions);
+// User routes (protected)
+router.get('/latest', protect, quizController.getLatestQuizQuestion);
+router.post('/submit', protect, quizController.submitAnswer);
+router.get('/submissions', protect, quizController.getQuizSubmission); // Get user's submissions
+router.get('/top-scorers', protect, quizController.getTopScorers); // Get top scorers
 
-quizRouter.get('/:id', protect, quizController.getQuizById);
-quizRouter.put('/:id', protect, authorize("Admin"), quizController.updateQuiz);
-quizRouter.delete('/:id', protect, authorize("Admin"), quizController.deleteQuiz);
-
-
-module.exports = quizRouter;
+module.exports = router;

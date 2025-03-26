@@ -1,14 +1,16 @@
-// petitionRoutes.js
 const express = require('express');
-const router = express.Router();
+const petitionRouter = express.Router();
 const petitionController = require('../controllers/petitionController');
-const { protect, vicar } = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/authMiddleware'); // Assuming you have auth middleware
 
-router.post('/', protect, petitionController.createPetition);
-router.get('/:id', protect, petitionController.getPetitionById);
-router.put('/:id', protect, petitionController.updatePetitionByUser);
-router.delete('/:id', protect, petitionController.deletePetitionByUser);
-router.put('/:id/status', protect, vicar, petitionController.updatePetitionStatusByVicar);
-router.get('/', protect, petitionController.getAllPetitions);
+// User routes (protected)
+petitionRouter.post('/', protect, petitionController.createPetition);
+petitionRouter.get('/:id', petitionController.getPetitionById); // Public route, no auth needed
+petitionRouter.put('/:id', protect, petitionController.updatePetitionByUser);
+petitionRouter.delete('/:id', protect, petitionController.deletePetitionByUser);
 
-module.exports = router;
+// Vicar routes (protected)
+petitionRouter.put('/:id/status', protect, authorize("Vicar"), petitionController.updatePetitionStatusByVicar);
+petitionRouter.get('/', protect, authorize("Vicar"), petitionController.getAllPetitions); // Vicar can view all petitions
+
+module.exports = petitionRouter;

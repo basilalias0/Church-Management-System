@@ -2,13 +2,14 @@
 const express = require('express');
 const galleryRouter = express.Router();
 const galleryController = require('../controllers/galleryController');
-const { protect, admin } = require('../middleware/authMiddleware');
-const upload = require('../utils/cloudinaryUpload'); // Import your cloudinary upload middleware
+const { protect, authorize } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
-galleryRouter.post('/', protect, admin, upload('gallery').single('file'), galleryController.createGalleryItem); // Upload single file to 'gallery' folder
+
+galleryRouter.post('/', protect, authorize("Admin"), upload('gallery').single('file'), galleryController.createGalleryItem); // Upload single file to 'gallery' folder
 galleryRouter.get('/:id', galleryController.getGalleryItemById);
 galleryRouter.get('/', galleryController.getAllGalleryItems);
-galleryRouter.put('/:id', protect, admin, galleryController.updateGalleryItem);
-galleryRouter.delete('/:id', protect, admin, galleryController.deleteGalleryItem);
+galleryRouter.put('/:id', protect, authorize("Admin"), galleryController.updateGalleryItem);
+galleryRouter.delete('/:id', protect, authorize("Admin"), galleryController.deleteGalleryItem);
 
 module.exports = galleryRouter;

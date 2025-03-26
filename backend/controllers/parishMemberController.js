@@ -1,153 +1,124 @@
-const ParishMember = require('../models/parishMemberModel');
 const User = require('../models/userModel');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 
 const parishMemberController = {
-    createParishMember: asyncHandler(async (req, res) => {
-        const { userId, username, email, password } = req.body; // Include username, email, password
-    
-        if (!userId && (!username || !email || !password)) {
-            return res.status(400).json({ message: 'Please provide user ID or username, email, and password' });
+    addParishMember: asyncHandler(async (req, res) => {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ message: 'User ID is required' });
         }
-    
+
         try {
-            let user;
-    
-            if (userId) {
-                // Existing user
-                user = await User.findById(userId);
-                if (!user) {
-                    return res.status(404).json({ message: 'User not found' });
-                }
-    
-                // Check if logged-in user is admin or user to be added is verified
-                if (req.user.role !== 'Admin' && !user.isVerified) {
-                    return res.status(403).json({ message: 'Not authorized to create parish members' });
-                }
-            } else {
-                // New user (admin adding)
-                if (req.user.role !== 'Admin') {
-                    return res.status(403).json({ message: 'Not authorized to create new parish members' });
-                }
-    
-                // Check if user with same email exists
-                const userExists = await User.findOne({ email });
-                if (userExists) {
-                    return res.status(400).json({ message: 'User with this email already exists' });
-                }
-    
-                user = await User.create({
-                    username,
-                    email,
-                    password,
-                    isVerified: true, // Auto-verify admin-created users
-                });
+            // Check if the user is verified
+            if (!req.user.isVerified) {
+                return res.status(403).json({ message: 'Only verified users can add parish members' });
             }
-    
-            const parishMemberExists = await ParishMember.findOne({ userId: user._id });
-            if (parishMemberExists) {
+
+            // Check if the user to be added is verified
+            const userToAdd = await User.findById(userId);
+
+            if (!userToAdd){
+                return res.status(404).json({message: "User not found"})
+            }
+
+            if (!userToAdd.isVerified) {
+                return res.status(403).json({ message: 'The user to be added must be verified' });
+            }
+
+            // Check if the user is already a parish member
+            if (req.user.id.toString() === userId.toString()) {
+                return res.status(400).json({ message: 'You cannot add yourself' });
+            }
+
+            const existingParishMember = await User.findOne({ _id: userId, isParishMember: true });
+            if (existingParishMember) {
                 return res.status(400).json({ message: 'User is already a parish member' });
             }
-    
-            const parishMember = await ParishMember.create({ userId: user._id, role: "Churchgoer" });
-    
-            res.status(201).json(parishMember);
+
+            // Update the user to be a parish member
+            await User.findByIdAndUpdate(userId, { isParishMember: true });
+
+            res.status(200).json({ message: 'User added as parish member successfully' });
         } catch (error) {
-            console.error('Create Parish Member Error:', error);
-            if (error instanceof mongoose.Error.ValidationError) {
-                return res.status(400).json({ message: 'Validation error', errors: error.errors });
-            } else if (error instanceof mongoose.Error.CastError) {
+            console.error('Add Parish Member Error:', error);
+            if (error instanceof mongoose.Error.CastError) {
                 return res.status(400).json({ message: 'Invalid user ID' });
             }
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
 
-    getParishMemberById: asyncHandler(async (req, res) => {
-        try {
-            const parishMember = await ParishMember.findById(req.params.id).populate('userId', '-password');
+    removeParishMember: asyncHandler(async (req, res) => {
+        const { userId } = req.body;
 
-            if (!parishMember) {
-                return res.status(404).json({ message: 'Parish member not found' });
+        if (!userId) {
+            return res.status(400).json({ message: 'User ID is required' });
+        }
+
+        try {
+            // Check if the user is verified
+            if (!req.user.isVerified) {
+                return res.status(403).json({ message: 'Only verified users can remove parish members' });
             }
 
-            res.json(parishMember);
+            // Check if the user is a parish member
+            const userToRemove = await User.findById(userId);
+
+             if (!userToRemove){
+                return res.status(404).json({message: "User not found"})
+            }
+
+            if (!userToRemove.isParishMember) {
+                return res.status(400).json({ message: 'User is not a parish member' });
+            }
+
+            // Update the user to not be a parish member
+            await User.findByIdAndUpdate(userId, { isParishMember: false });
+
+            res.status(200).json({ message: 'User removed from parish members successfully' });
         } catch (error) {
-            console.error('Get Parish Member by ID Error:', error);
+            console.error('Remove Parish Member Error:', error);
             if (error instanceof mongoose.Error.CastError) {
-                return res.status(400).json({ message: 'Invalid parish member ID' });
+                return res.status(400).json({ message: 'Invalid user ID' });
             }
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
+    
+    toggleParishMemberByAdmin: asyncHandler(async (req, res) => {
+        const { userId, isParishMember } = req.body;
 
-    updateParishMember: asyncHandler(async (req, res) => {
-        try {
-            const parishMember = await ParishMember.findByIdAndUpdate(req.params.id, req.body, {
-                new: true,
-                runValidators: true,
-            }).populate('userId', '-password');
-
-            if (!parishMember) {
-                return res.status(404).json({ message: 'Parish member not found' });
-            }
-
-            res.json(parishMember);
-        } catch (error) {
-            console.error('Update Parish Member Error:', error);
-            if (error instanceof mongoose.Error.ValidationError) {
-                return res.status(400).json({ message: 'Validation error', errors: error.errors });
-            } else if (error instanceof mongoose.Error.CastError) {
-                return res.status(400).json({ message: 'Invalid parish member ID' });
-            }
-            res.status(500).json({ message: 'Internal server error', error: error.message });
+        if (!userId || isParishMember === undefined) {
+            return res.status(400).json({ message: 'User ID and isParishMember are required' });
         }
-    }),
 
-    deleteParishMember: asyncHandler(async (req, res) => {
         try {
-            const parishMember = await ParishMember.findByIdAndDelete(req.params.id);
-
-            if (!parishMember) {
-                return res.status(404).json({ message: 'Parish member not found' });
+            // Check if the logged-in user is an admin
+            if (req.user.role !== 'Admin') {
+                return res.status(403).json({ message: 'Only admins can toggle parish member status' });
             }
 
-            res.json({ message: 'Parish member deleted successfully' });
+            // Update the user's isParishMember field
+            await User.findByIdAndUpdate(userId, { isParishMember });
+
+            res.status(200).json({ message: `User's parish member status updated successfully` });
         } catch (error) {
-            console.error('Delete Parish Member Error:', error);
+            console.error('Toggle Parish Member by Admin Error:', error);
             if (error instanceof mongoose.Error.CastError) {
-                return res.status(400).json({ message: 'Invalid parish member ID' });
+                return res.status(400).json({ message: 'Invalid user ID' });
             }
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
 
-    searchParishMembers: asyncHandler(async (req, res) => {
+    getParishMembers: asyncHandler(async (req, res) => {
         try {
-            const { search } = req.query;
-            let query = {};
-
-            if (search) {
-                query = {
-                    'userId.fullName': { $regex: search, $options: 'i' },
-                };
-            }
-
-            const parishMembers = await ParishMember.find(query).populate('userId', '-password');
+            const parishMembers = await User.find({ isParishMember: true });
             res.json(parishMembers);
         } catch (error) {
-            console.error('Search Parish Members Error:', error);
-            res.status(500).json({ message: 'Internal server error', error: error.message });
-        }
-    }),
-
-    getAllParishMembers: asyncHandler(async (req, res) => {
-        try {
-            const parishMembers = await ParishMember.find().populate('userId', '-password');
-            res.json(parishMembers);
-        } catch (error) {
-            console.error('Get All Parish Members Error:', error);
+            console.error('Get Parish Members Error:', error);
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
