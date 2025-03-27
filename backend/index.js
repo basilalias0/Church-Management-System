@@ -5,6 +5,7 @@ const connectDB = require('./config/db');
 const cors = require('cors')
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const router = require('./routes');
+const donationController = require('./controllers/donationController');
 dotenv.config();
 
 connectDB();
@@ -12,8 +13,9 @@ app.use(cors({
     origin: ['http://localhost:5173'],
     optionsSuccessStatus:200
 }))
+app.use('api/v1/donation/webhook',express.raw({ type: 'application/json' }),donationController.stripeWebhook);
 
-
+app.use(express.json());
 
 app.use('/api/v1', router)
 
