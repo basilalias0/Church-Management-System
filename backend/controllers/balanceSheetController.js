@@ -1,8 +1,10 @@
 const Transaction = require('../models/transactionModel');
 const asyncHandler = require('express-async-handler');
+require('dotenv').config()
 
 const balanceSheetController = {
     getBalanceSheet: asyncHandler(async (req, res) => {
+
         try {
             const income = await Transaction.aggregate([
                 { $match: { type: 'income' } },

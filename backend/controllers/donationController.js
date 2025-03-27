@@ -2,6 +2,7 @@ const Donation = require('../models/donationModel');
 const Transaction = require('../models/transactionModel');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
+const Receipt = require('../models/receiptModel')
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); // Replace with your Stripe secret key
 
 const donationController = {
@@ -27,7 +28,7 @@ const donationController = {
                     donationDate: new Date(), // Automatically entered
                 });
 
-                res.status(201).json(donation);
+                res.status(201).send("donation is done");
             } else {
                 res.status(400).json({ message: 'Payment failed' });
             }
@@ -51,7 +52,6 @@ const donationController = {
     stripeWebhook: asyncHandler(async (req, res) => {
         const sig = req.headers['stripe-signature'];
         let event;
-        console.log("stripe checking", process.env.STRIPE_WEBHOOK_SECRET);
         
 
         try {
@@ -68,6 +68,7 @@ const donationController = {
             const charge = event.data.object;
             const { amount, description } = charge;
             const donationDate = new Date(charge.created * 1000); // Convert timestamp to Date
+            const receiptUrl = charge.receipt_url;
 
             try {
 
@@ -76,11 +77,16 @@ const donationController = {
                     transactionDate: donationDate,
                     category: 'donation',
                     amount: amount / 100,
-                    description: `Donation received via Stripe`,
+                    description: `Donation received via Stripe ${description}`,
                     type: 'income',
                 });
 
-                res.json({ received: true, transaction });
+                const receipt = await Receipt.create({
+                    receiptUrl: receiptUrl,
+                    transactionId: transaction._id,
+                    });
+                
+                res.json({ received: true, transaction,receipt });
             } catch (dbError) {
                 console.error('Database Error:', dbError);
                 res.status(500).json({ message: 'Database error processing webhook' });
