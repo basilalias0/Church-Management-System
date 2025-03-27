@@ -1,6 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
-const BudgetPlanning = require('../models/budgetPlanningMOdel');
+const BudgetPlanning = require('../models/budgetPlanningModel');
 
 const budgetPlanningController = {
     createBudget: asyncHandler(async (req, res) => {
