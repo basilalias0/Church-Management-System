@@ -6,7 +6,8 @@ const donationController = require('../controllers/donationController');
 
 donationRouter.post('/webhook', express.raw({ type: 'application/json' }), donationController.stripeWebhook); // Stripe webhook endpoint
 // Donation Routes
-donationRouter.post('/',express.json(), donationController.createDonation); // Create a donation
+app.use(express.json())
+donationRouter.post('/', donationController.createDonation); // Create a donation
 donationRouter.get('/', donationController.getAllDonations); // View all donations
 
 

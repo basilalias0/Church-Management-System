@@ -14,6 +14,7 @@ const transactionRouter = require('./transactionRouter');
 const petitionRouter = require('./petitionRouter');
 const notificationRouter = require('./notificationRouter');
 const balanceSheetRouter = require('./balanceSheetRouter');
+const receiptRouter = require('./receiptRouter');
 const router = express()
 
 router.use("/donation",donationRouter)
@@ -35,6 +36,7 @@ router.use("/petition",petitionRouter)
 router.use("/quiz",quizRouter)
 router.use("/notification",notificationRouter)
 router.use("/balance-sheet",balanceSheetRouter)
+router.use("/receipt",receiptRouter)
 
 
 module.exports = router;
