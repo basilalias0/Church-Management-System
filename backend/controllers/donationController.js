@@ -7,7 +7,8 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); // Replace with
 const donationController = {
     createDonation: asyncHandler(async (req, res) => {
         const { name, contactNumber, amount, message } = req.body;
-
+        console.log(req.body.stripeToken);
+        
         try {
             // Create a Stripe charge
             const charge = await stripe.charges.create({
@@ -50,6 +51,8 @@ const donationController = {
     // Stripe Webhook (Handle successful payments)
     stripeWebhook: asyncHandler(async (req, res) => {
         const sig = req.headers['stripe-signature'];
+        console.log("sig",sig);
+        
         let event;
 
         try {
@@ -57,6 +60,8 @@ const donationController = {
         } catch (err) {
             return res.status(400).send(`Webhook Error: ${err.message}`);
         }
+        console.log("event",event);
+        
 
         // Handle the event
         if (event.type === 'charge.succeeded') {
@@ -72,11 +77,11 @@ const donationController = {
                     transactionDate: donationDate,
                     category: 'donation',
                     amount: amount / 100,
-                    description: `Donation received via Stripe: ${donation.name}`,
+                    description: `Donation received via Stripe`,
                     type: 'income',
                 });
 
-                res.json({ received: true, donation, transaction });
+                res.json({ received: true, transaction });
             } catch (dbError) {
                 console.error('Database Error:', dbError);
                 res.status(500).json({ message: 'Database error processing webhook' });
