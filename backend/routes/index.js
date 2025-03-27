@@ -16,6 +16,10 @@ const notificationRouter = require('./notificationRouter');
 const balanceSheetRouter = require('./balanceSheetRouter');
 const router = express()
 
+router.use("/donation",donationRouter)
+
+router.use(express.json());
+
 router.use("/users",userRouter)
 router.use("/parish-member",parishMemberRouter)
 router.use("/blood-donor",bloodDonorRouter)
@@ -24,7 +28,6 @@ router.use("/event",eventRouter)
 router.use("/id-card",virtualIdCardRouter)
 router.use("/gallery",galleryRouter)
 router.use("/budget-planning",budgetPlanningRouter)
-router.use("/donation",donationRouter)
 router.use("/family-member",familyMemberRouter)
 router.use("/family-unit",familyUnitRouter)
 router.use("/transaction",transactionRouter)
