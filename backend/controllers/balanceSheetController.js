@@ -5,12 +5,12 @@ const balanceSheetController = {
     getBalanceSheet: asyncHandler(async (req, res) => {
         try {
             const income = await Transaction.aggregate([
-                { $match: { type: 'Income' } },
+                { $match: { type: 'income' } },
                 { $group: { _id: null, totalIncome: { $sum: '$amount' } } },
             ]);
 
             const expenses = await Transaction.aggregate([
-                { $match: { type: 'Expense' } },
+                { $match: { type: 'expense' } },
                 { $group: { _id: null, totalExpenses: { $sum: '$amount' } } },
             ]);
 
@@ -19,8 +19,8 @@ const balanceSheetController = {
             const netBalance = totalIncome - totalExpenses;
 
             // Get all income and expense transactions
-            const incomeTransactions = await Transaction.find({ type: 'Income' });
-            const expenseTransactions = await Transaction.find({ type: 'Expense' });
+            const incomeTransactions = await Transaction.find({ type: 'income' });
+            const expenseTransactions = await Transaction.find({ type: 'expense' });
 
             res.json({
                 totalIncome,

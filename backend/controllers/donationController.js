@@ -70,10 +70,10 @@ const donationController = {
                 // Create a transaction entry
                 const transaction = await Transaction.create({
                     transactionDate: donationDate,
-                    category: 'income',
+                    category: 'donation',
                     amount: amount / 100,
                     description: `Donation received via Stripe: ${donation.name}`,
-                    type: 'Income',
+                    type: 'income',
                 });
 
                 res.json({ received: true, donation, transaction });

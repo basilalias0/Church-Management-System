@@ -5,6 +5,9 @@ const BudgetPlanning = require('../models/budgetPlanningMOdel');
 const budgetPlanningController = {
     createBudget: asyncHandler(async (req, res) => {
         const { type, description, amount, dateOfPlanning } = req.body;
+        if(!type || !description || !amount || !dateOfPlanning){
+            return res.status(400).json({ message: 'Please fill in all fields' });
+        }
 
         try {
             const budget = await BudgetPlanning.create({

@@ -13,6 +13,7 @@ const familyUnitRouter = require('./familyUnitRouter');
 const transactionRouter = require('./transactionRouter');
 const petitionRouter = require('./petitionRouter');
 const notificationRouter = require('./notificationRouter');
+const balanceSheetRouter = require('./balanceSheetRouter');
 const router = express()
 
 router.use("/users",userRouter)
@@ -30,5 +31,6 @@ router.use("/transaction",transactionRouter)
 router.use("/petition",petitionRouter)
 router.use("/quiz",quizRouter)
 router.use("/notification",notificationRouter)
+router.use("/balance-sheet",balanceSheetRouter)
 
 module.exports = router;
