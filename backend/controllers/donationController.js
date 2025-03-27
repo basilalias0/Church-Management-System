@@ -51,6 +51,8 @@ const donationController = {
     stripeWebhook: asyncHandler(async (req, res) => {
         const sig = req.headers['stripe-signature'];
         let event;
+        console.log("stripe checking", process.env.STRIPE_WEBHOOK_SECRET);
+        
 
         try {
             event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
