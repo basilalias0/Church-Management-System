@@ -72,6 +72,7 @@ const familyUnitController = {
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
+    
 
     deleteFamilyUnit: asyncHandler(async (req, res) => {
         try {

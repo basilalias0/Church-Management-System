@@ -5,26 +5,31 @@ const mongoose = require('mongoose');
 
 const galleryController = {
     createGalleryItem: asyncHandler(async (req, res) => {
+        // Check if a file was uploaded
         if (!req.file) {
             return res.status(400).json({ message: 'File is required' });
         }
 
         try {
-            if (req.user.role !== 'admin') {
+            // Restrict access to Admin role
+            if (req.user.role !== 'Admin') {
                 return res.status(403).json({ message: 'Not authorized to create gallery items' });
             }
 
-            const fileFormat = req.file.mimetype.split('/')[0]; // Extract 'image' or 'video'
-            const type = fileFormat.charAt(0).toUpperCase() + fileFormat.slice(1); // Capitalize first letter
+            // Extract file type from mimetype (e.g., 'image/jpeg' or 'video/mp4')
+            const fileFormat = req.file.mimetype.split('/')[0]; // 'image' or 'video'
+            const type = fileFormat.charAt(0).toUpperCase() + fileFormat.slice(1); // Capitalize: 'Image' or 'Video'
 
+            // Validate file type
             if (!['Image', 'Video'].includes(type)) {
-                return res.status(400).json({ message: 'Unsupported file type' });
+                return res.status(400).json({ message: 'Unsupported file type. Only images and videos are allowed.' });
             }
 
+            // Create new gallery item with Cloudinary URL and description
             const galleryItem = await GalleryItem.create({
                 type,
-                url: req.file.path, // Cloudinary URL
-                description: req.body.description,
+                url: req.file.path, // Cloudinary URL (provided by multer-storage-cloudinary)
+                description: req.body.description || 'No description provided',
             });
 
             res.status(201).json(galleryItem);

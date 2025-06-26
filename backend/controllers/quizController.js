@@ -95,7 +95,6 @@ const quizController = {
 
     getLatestQuizQuestions: asyncHandler(async (req, res) => {
         try {
-            console.log(req.user);
             
             const userId = req.user.id;
     

@@ -104,6 +104,23 @@ const userController = {
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
+    getUnverifiedUsers: asyncHandler(async (req, res) => {
+        try {
+          const { search } = req.query;
+          let query = { isParishMember: false,role:'Normal User' }; // Filter for unverified users
+    
+          if (search) {
+            query.name = { $regex: search, $options: 'i' }; // Optional search by name
+          }
+    
+          const users = await User.find(query).select('-password');
+          res.json(users);
+        } catch (error) {
+          console.error('Get Unverified Users Error:', error);
+          res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
+      }),
+      
 
     getAllUsers: asyncHandler(async (req, res) => {
         try {
@@ -228,6 +245,39 @@ const userController = {
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
+    
+    updateUserProfile: asyncHandler(async (req, res) => {
+        const userId = req.user.id;
+        const { dateOfBirth, contactNumber } = req.body;
+    
+        try {
+            const user = await User.findById(userId);
+    
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+    
+            user.dateOfBirth = dateOfBirth || user.dateOfBirth;
+            user.contactNumber = contactNumber || user.contactNumber;
+    
+            const updatedUser = await user.save();
+    
+            res.status(200).json({
+                message: 'Profile updated successfully',
+                user: {
+                    _id: updatedUser._id,
+                    name: updatedUser.name,
+                    email: updatedUser.email,
+                    contactNumber: updatedUser.contactNumber,
+                    dateOfBirth: updatedUser.dateOfBirth,
+                },
+            });
+        } catch (error) {
+            console.error('Update Profile Error:', error);
+            res.status(500).json({ message: 'Internal server error', error: error.message });
+        }
+    }),
+    
 };
 
 module.exports = userController;

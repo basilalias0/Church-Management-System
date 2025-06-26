@@ -5,44 +5,39 @@ const mongoose = require('mongoose');
 
 const familyMemberController = {
     addFamilyMember: asyncHandler(async (req, res) => {
-        const { name, relation, dateOfBirth, contactNumber } = req.body;
-        const {familyUnitCode} = req.user
-
-        if (!name || !relation ) {
-            return res.status(400).json({ message: 'Name, relation required' });
+        const { name, relation, dateOfBirth, contactNumber, familyUnitCode, uniqueFamilyCode } = req.body;
+    
+        // Validate required fields
+        if (!name || !relation || !familyUnitCode || !uniqueFamilyCode) {
+          return res.status(400).json({ message: 'Name, relation, familyUnitCode, and uniqueFamilyCode are required' });
         }
-
+    
         try {
-            // Check if the user is verified
-            if (!req.user.isParishMember) {
-                return res.status(403).json({ message: 'Only verified users can add family members' });
-            }
-
-            if (!req.user.uniqueFamilyCode) {
-                return res.status(404).json({ message: "User didn't added family" });
-            }
-            
-
-            // Create the family member
-            const familyMember = await FamilyMember.create({
-                creatorId: req.user.id,
-                name,
-                relation,
-                dateOfBirth,
-                contactNumber,
-                familyUnitCode,
-                uniqueFamilyCode:req.user.uniqueFamilyCode,
-            });
-
-            res.status(201).json(familyMember);
+          // Check if the user is verified
+          if (!req.user.isParishMember) {
+            return res.status(403).json({ message: 'Only verified users can add family members' });
+          }
+    
+          // Create the family member
+          const familyMember = await FamilyMember.create({
+            creatorId: req.user.id,
+            name,
+            relation,
+            dateOfBirth,
+            contactNumber,
+            familyUnitCode,
+            uniqueFamilyCode,
+          });
+    
+          res.status(201).json(familyMember);
         } catch (error) {
-            console.error('Add Family Member Error:', error);
-            if (error instanceof mongoose.Error.ValidationError) {
-                return res.status(400).json({ message: 'Validation error', errors: error.errors });
-            }
-            res.status(500).json({ message: 'Internal server error', error: error.message });
+          console.error('Add Family Member Error:', error);
+          if (error instanceof mongoose.Error.ValidationError) {
+            return res.status(400).json({ message: 'Validation error', errors: error.errors });
+          }
+          res.status(500).json({ message: 'Internal server error', error: error.message });
         }
-    }),
+      }),
 
     getFamilyMemberById: asyncHandler(async (req, res) => {
         try {
@@ -102,7 +97,6 @@ const familyMemberController = {
             res.status(500).json({ message: 'Internal server error', error: error.message });
         }
     }),
-
     getAllFamilyMembers: asyncHandler(async (req, res) => {
         try {
             const familyMembers = await FamilyMember.find().populate('creatorId', 'name email');

@@ -12,7 +12,6 @@ const eventController = {
         }
 
         try {
-
             const event = await Event.create({ title, description, date });
 
             await notificationController.sendEventNotification(event);

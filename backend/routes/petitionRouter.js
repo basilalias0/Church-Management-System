@@ -4,7 +4,7 @@ const petitionController = require('../controllers/petitionController');
 const { protect, authorize } = require('../middleware/authMiddleware'); // Assuming you have auth middleware
 
 // User routes (protected)
-petitionRouter.post('/', protect, petitionController.createPetition);
+petitionRouter.post('/add', protect, petitionController.createPetition);
 petitionRouter.get('/my', protect, petitionController.getAllUserPetitions);
 petitionRouter.get('/:id', petitionController.getPetitionById); // Public route, no auth needed
 petitionRouter.put('/:id', protect, petitionController.updatePetitionByUser);

@@ -6,14 +6,14 @@ require('dotenv').config(); // Load environment variables
 const transporter = nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE, // e.g., 'gmail', 'outlook', etc.
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD,
     },
 });
 
 const sendNotificationEmail = async (mailOptions) => {
     try {
-        mailOptions.from = process.env.EMAIL_USER; // Add from address here.
+        mailOptions.from = process.env.EMAIL_USERNAME; // Add from address here.
         const info = await transporter.sendMail(mailOptions);
         console.log('Message sent: %s', info.messageId);
         return info; // Return the info object for further processing if needed

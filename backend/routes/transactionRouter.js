@@ -6,7 +6,7 @@ const { protect, accountant, authorize } = require('../middleware/authMiddleware
 
 // Transaction Routes (Accountant only)
 transactionRouter.post('/', protect, authorize("Accountant"), transactionController.createTransaction); // Create a transaction
-transactionRouter.get('/', protect, authorize("Accountant"), transactionController.getAllTransactions); // View all transactions
+transactionRouter.get('/', protect, transactionController.getAllTransactions); // View all transactions
 transactionRouter.put('/:id', protect, authorize("Accountant"), transactionController.updateTransaction); // update transaction
 transactionRouter.delete('/:id', protect, authorize("Accountant"), transactionController.deleteTransaction); // delete transaction
 
